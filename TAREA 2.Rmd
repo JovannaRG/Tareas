@@ -1,0 +1,172 @@
+---
+title: "TAREA 2"
+author: " Jovanna Ramírez Guerrero"
+date: "2025-04-13"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 1
+    theme: cerulean
+---
+
+<style>
+body {
+text-align: justify}
+</style>
+
+<style type="text/css">
+body{/*Normal*/
+     font-size: 20px;
+}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(tidyverse)
+library(discrtr) # A companion package for the book Introduction to Discrete Choice Analysis with `R`
+library(mlogit) # Multinomial Logit Models
+library(readr) # Read Rectangular Text Data
+
+library(gplots) # Various R Programming Tools for Plotting Data
+library(ggmosaic) # Mosaic Plots in the 'ggplot2' Framework
+library(treemapify)
+library(ggridges)
+library(ggalluvial)
+library(plotly)
+```
+
+A partir del archivo <b>Ejercicios/Capítulo_2.Rmd</b> explora el conjunto de datos <b>Car</b> y realiza los ejercicios del capítulo 2 <b>Exploratory Data Analysis</b>.
+
+Call data set Car from package mlogit. Once you have loaded the data set, do the following:
+
+<ul>
+ <li>How many variables are there in this data set and of which type (i.e., categorical/quantitative)?</li>
+
+ <li>Choose four relevant categorical variables from this data set and describe them using univariate, bivariate, and multivariate techniques. Discuss your results.</li>
+
+ <li>What ideas about individuals’ choices regarding car do you develop from this EDA exercise?</li>
+</ul>
+
+Se carga el conjunto de datos, se muestran las variables y su tipo:
+
+```{r}
+data(Car)
+glimpse(Car)
+```
+
+En este caso es necesario añadir columnas acerca de la elección, las gráficas se realizarán con la data frame `new_car`:
+
+```{r}
+new_car <- Car
+choice_char <- gsub("choice","", new_car$choice)
+new_car <- new_car |> mutate(choice_char = choice_char)
+
+type <- vector("character", nrow(new_car))
+fuel <- vector("character", nrow(new_car))
+price <- vector("numeric", nrow(new_car))
+range <- vector("numeric", nrow(new_car))
+acc <- vector("numeric", nrow(new_car))
+speed <- vector("numeric", nrow(new_car))
+pollution <- vector("numeric", nrow(new_car))
+size <- vector("numeric", nrow(new_car))
+space <- vector("numeric", nrow(new_car))
+cost <- vector("numeric", nrow(new_car))
+station <- vector("numeric", nrow(new_car))
+for (i in 1:nrow(new_car)) {
+  type[i] <- as.character(new_car[i, paste0("type", new_car$choice_char[i], collapse = "")])
+  fuel[i] <- as.character(new_car[i, paste0("fuel", new_car$choice_char[i], collapse = "")])
+  price[i] <- new_car[i, paste0("price", new_car$choice_char[i], collapse = "")]
+  range[i] <- new_car[i, paste0("range", new_car$choice_char[i], collapse = "")]
+  acc[i] <- new_car[i, paste0("acc", new_car$choice_char[i], collapse = "")]
+  speed[i] <- new_car[i, paste0("speed", new_car$choice_char[i], collapse = "")]
+  pollution[i] <- new_car[i, paste0("pollution", new_car$choice_char[i], collapse = "")]
+  size[i] <- new_car[i, paste0("size", new_car$choice_char[i], collapse = "")]
+  space[i] <- new_car[i, paste0("space", new_car$choice_char[i], collapse = "")]
+  cost[i] <- new_car[i, paste0("cost", new_car$choice_char[i], collapse = "")]
+  station[i] <- new_car[i, paste0("station", new_car$choice_char[i], collapse = "")]
+}
+
+new_car <- new_car |> mutate(choice_num= factor(choice_char), type=type, fuel=fuel, price=price, range=range,
+                             acc=acc, speed=speed, pollution=pollution, size=size, space=space, cost=cost,
+                             station=station)
+
+new_car$type <- factor(new_car$type, levels = levels(new_car$type1))
+new_car$fuel <- factor(new_car$fuel, levels = levels(new_car$fuel1))
+```
+
+Análisis Univariado
+
+```{r}
+new_car <- new_car %>%
+  mutate(price_cat = cut(price,
+                         breaks = quantile(price, probs = c(0, 0.33, 0.66, 1), na.rm = TRUE),
+                         labels = c("Bajo", "Medio", "Alto"),
+                         include.lowest = TRUE))
+
+ggplot(new_car, aes(x = price_cat)) +
+  geom_bar(fill = "cyan") +
+  labs(title = "Distribución por nivel de precio", x = "Precio", y = "Frecuencia")
+
+ggplot(new_car, aes(x = type)) +
+  geom_bar(fill = "pink") +
+  labs(title = "Distribución por tipo de auto", x = "Tipo", y = "Frecuencia")
+
+ggplot(new_car, aes(x = fuel)) +
+  geom_bar(fill = "darkseagreen") +
+  labs(title = "Distribución por tipo de combustible", x = "Combustible", y = "Frecuencia")
+
+new_car <- new_car %>%
+  mutate(cost_cat = cut(cost,
+                        breaks = quantile(cost, probs = c(0, 0.33, 0.66, 1), na.rm = TRUE),
+                        labels = c("Bajo", "Medio", "Alto"),
+                        include.lowest = TRUE))
+
+ggplot(new_car, aes(x = cost_cat)) +
+  geom_bar(fill = "orange") +
+  labs(title = "Distribución por nivel de costo de uso", x = "Costo", y = "Frecuencia")
+
+```
+
+Análisis bivariado
+
+```{r}
+# price_cat vs fuel
+
+ggplot(new_car, aes(x = fuel, fill = price_cat)) +
+  geom_bar(position = "fill") +
+  labs(title = "Nivel de precio según tipo de combustible", y = "Proporción")
+
+# price_cat vs type
+
+ggplot(new_car, aes(x = type, fill = price_cat)) +
+  geom_bar(position = "fill") +
+  labs(title = "Nivel de precio según tipo de auto", y = "Proporción")
+
+# price_cat vs cost_cat
+
+ggplot(new_car, aes(x = cost_cat, fill = price_cat)) +
+  geom_bar(position = "fill") +
+  labs(title = "Relación entre costo de uso y precio", x = "Costo", y = "Proporción del precio")
+
+```
+
+Análisis Multivariado
+
+```{r}
+# type vs fuel vs price_cat
+
+ggplot(new_car, aes(x = type, fill = price_cat)) +
+  geom_bar(position = "fill") +
+  facet_wrap(~fuel) +
+  labs(title = "Tipo de auto y precio según combustible")
+
+# fuel vs cost_cat vs price_cat
+
+ggplot(new_car, aes(x = cost_cat, fill = price_cat)) +
+  geom_bar(position = "fill") +
+  facet_wrap(~fuel) +
+  labs(title = "Precio según tipo de combustible y costo de uso")
+
+```
+
