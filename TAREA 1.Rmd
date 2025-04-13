@@ -1,0 +1,131 @@
+---
+title: "TAREA 1"
+author: " Jovanna Ramírez Guerrero"
+date: "2025-04-13"
+output:
+  html_document:
+    toc: true
+    toc_depth: 1
+    theme: cerulean
+---
+
+<style>
+body {
+text-align: justify}
+</style>
+
+<style type="text/css">
+body{/*Normal*/
+     font-size: 20px;
+}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(tidyverse)
+library(discrtr) # A companion package for the book Introduction to Discrete Choice Analysis with `R`
+library(mlogit) # Multinomial Logit Models
+library(readr) # Read Rectangular Text Data
+library(plotly)
+```
+
+Incluye el archivo <b>Ejercicios/Capitulo_1.Rmd</b> en tu repositorio y complementa con observaciones y las respuestas de los ejercicios 4-8 del capítulo 1 <b>Data, Models and Software</b>.
+
+3. Invoke data set Mode from package mlogit. To do this you need to first load the package. This is a data set with choices about mode of transportation. This is done as follows:
+
+```{r}
+data("Mode")
+```
+
+Once you have loaded the data set, answer the following questions:
+
+4. Describe this data set. How many variables are there and of which type (i.e., categorical/quantitative)?
+
+```{r}
+glimpse(Mode)
+```
+
+```{r}
+?Mode
+str(Mode)
+```
+
+El conjunto de datos <b>Mode</b> del package <b>mlogit</b> contiene una muestra <b>453</b> observaciones de <b>9</b> variables, una de ellas categórica <b>(choice)</b> y el resto numéricas.
+
+Se compone de:
+
+<ul>
+  <li><b>choice:</b> automóvil, auto compartido, autobús o tren,</li>
+  <li><b>cost.z:</b> costo del modo de transporte z,</li>
+  <li><b>time.z:</b> tiempo del modo de transporte z.</li>
+</ul>
+
+5. How many different modes of transportation are in this data set? What is the most popular mode? What is the least popular mode?
+
+```{r}
+ggplot(Mode)+
+  geom_bar(aes(choice, fill=choice), color="black", show.legend = FALSE)+
+  theme_bw()
+```
+
+Hay cuatro modos diferentes de transporte: automóvil, auto compartido, autobús o tren. Siendo <b>car</b> el más popular y <b>carpool</b> el menos popular.
+
+6. In general, what is the most expensive mode? The least expensive?
+
+```{r}
+ggplot(Mode)+
+  geom_density(aes(cost.car, fill="car"), color="black", alpha=0.5)+
+  geom_density(aes(cost.carpool , fill="carpool"), color="black", alpha=0.5)+
+  geom_density(aes(cost.bus, fill="bus"), color="black", alpha=0.5)+
+  geom_density(aes(cost.rail, fill="rail"), color="black", alpha=0.5)+
+  scale_fill_manual(values=c("car"= "firebrick", "carpool"="dodgerblue", "bus"="darkgoldenrod2", "rail"="cyan"), name="Mode")+
+  xlab("Cost")+
+theme_bw()
+  
+```
+
+```{r}
+summary(Mode)
+```
+
+El modo de transporte más costoso es <b>car</b>, representado de color rosa en la gráfica, vemos que su distribución se desplaza hacia la derecha, indicando valores más altos en comparación con otros modos de transporte.
+
+Por el contrario, el medio más barato es <b>carpool</b>, representado de color azul en la gráfica, pues su costo promedio es el más bajo de todos.
+
+7. Create a plot showing the univariate distributions of time by car and time by bus. Discuss.
+
+```{r}
+grafica_time <- ggplot(Mode)+
+  geom_density(aes(time.car, fill="car"), color="black", alpha=0.5)+
+  geom_density(aes(time.carpool , fill="carpool"), color="black", alpha=0.5)+
+  geom_density(aes(time.bus, fill="bus"), color="black", alpha=0.5)+
+  geom_density(aes(time.rail, fill="rail"), color="black", alpha=0.5)+
+  scale_fill_manual(values=c("car"= "firebrick", "carpool"="dodgerblue", "bus"="darkgoldenrod2", "rail"="cyan"), name="Mode")+
+  xlab("Time")+
+theme_bw()
+
+ggplotly(grafica_time)  
+```
+
+Los viajes en automóvil presentan una mayor dispersión, con tiempos que van desde muy cortos hasta bastante prolongados. En contraste, los tiempos de viaje en autobús se concentran en un rango más estrecho, lo que indica una mayor regularidad, aunque con una tendencia a ser más largos en promedio. En este sentido, el automóvil puede ofrecer trayectos más rápidos en ciertos casos, pero menos predecibles; mientras que el autobús, aunque menos flexible en tiempo, brinda una experiencia de viaje más uniforme.
+
+8. How do choices relate to cost by the different modes?
+
+```{r}
+varnum <- Mode |> dplyr::select(where(is.numeric))
+varnum <- names(varnum)
+
+for (var in varnum) {
+grafica_box <- ggplot(Mode)+
+  geom_boxplot(aes(choice, eval(as.name(var)), fill=choice), show.legend=FALSE)+
+  ylab(var)+
+  theme_bw()
+  
+  print(grafica_box)
+    
+}
+
+```
+
+La elección del modo de transporte está relacionada con el costo. Mientras mayor sea el costo de algun medio de transporte, más probable es que las personas elijan otras opciones. Además, quienes tienen costos más bajos al usar un modo de transporte específico, tienden a elegirlo como medio de transporte principal.
