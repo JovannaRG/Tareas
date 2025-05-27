@@ -1,0 +1,121 @@
+---
+title: "Ejercicio en clase"
+author: "Jovanna Ramírez Guerrero"
+date: "2025-05-27"
+output: html_document
+---
+
+```{r, include=FALSE, echo=FALSE}
+library(knitr)
+library(tidyverse)
+library(discrtr)
+library(dplyr)
+library(ggplot2)
+library(mlogit)
+library(readr)
+library(gplots)
+library(ggmosaic)
+library(treemapify)
+library(ggridges)
+library(ggalluvial)
+library(evd)
+library(htmlwidgets)
+library(kableExtra) 
+library(plotly)
+library(tidyr)
+library(evd)
+library(gmnl)
+library(gridExtra)
+library(AER)
+```
+
+3. Load the following data set from the mlogit package:
+
+```{r}
+data("ModeCanada", package = "mlogit")
+```
+
+This data set includes information about travel by mode in the Montreal–Toronto corridor. Variable noalt is the number of alternatives available to each respondent. Filter all respondents with four alternatives and process the data for use in gmnl.
+
+```{r}
+MC_previo <- ModeCanada %>% filter(noalt == 4)
+
+MC_previo$alt <- factor(MC_previo$alt, levels = c("air", "train", "bus", "car"))
+
+MC_choice <- MC_previo %>% filter(choice==1)
+
+ggplot(MC_choice)+
+  geom_boxplot(aes(alt, cost, color=alt))+
+  theme_bw()
+
+ggplot(MC_choice)+
+  geom_boxplot(aes(alt, dist, color=alt))+
+  theme_bw()
+
+ggplot(MC_choice)+
+  geom_boxplot(aes(alt, ivt, color=alt))+
+  theme_bw()
+
+ggplot(MC_choice)+
+  geom_boxplot(aes(alt, ovt, color=alt))+
+  theme_bw()
+
+MC <- mlogit.data(MC_previo, 
+                  choice = "choice",
+                  shape = "long", 
+                  alt.levels = c("air", "train", "bus", "car"))
+```
+
+Estimate a mixed logit model using this data set. Justify your choice of variables. Which variables do you choose to have random coefficients and why?
+
+```{r}
+# MIXL T
+
+mixl_vt <- gmnl(choice ~ cost + ivt + ovt | 1, data = MC, model = "mixl",
+               ranp = c(ivt = "n", ovt = "n"), R = 60)
+
+saveRDS(mixl_vt, "mix_vt.RDS")
+
+summary(mixl_vt)
+```
+
+```{r}
+mixl_vt <- gmnl(choice ~ cost + ivt + ovt | 1, data = MC, model = "mixl",
+               ranp = c(ivt = "n"), R = 60)
+
+saveRDS(mixl_vt, "mix_vt.RDS")
+
+summary(mixl_vt)
+```
+
+4. Graphically show the random coefficient(s) of your model, both the unconditional and conditional distributions. Discuss the results.
+
+```{r}
+mixl_vt <- readRDS("mix_vt.RDS")
+```
+
+```{r}
+ivp_mean <- mixl_vt$coefficients["ivt"]
+ivp_sd <- mixl_vt$coefficients["sd.ivt"]
+
+df <- tibble(x = seq(from = ivp_mean - 3*ivp_sd, to =  ivp_mean + 3*ivp_sd, length.out = 100), densidad = dnorm(x, mean = ivp_mean, sd = ivp_sd))
+
+ggplot(df) +
+  geom_line(aes(x = x, y = densidad))
+```
+
+```{r}
+pnorm(0, ivp_mean, ivp_sd, lower.tail = FALSE)
+```
+
+```{r}
+ivt_sim <- fitted(mixl_vt, type = "ranp")
+
+df_cond <- tibble(x = seq(min(ivt_sim), max(ivt_sim), length.out = 100),
+                  densidad = density(ivt_sim, n = 100)$y)
+
+ggplot(df_cond) +
+  geom_line(aes(x = x, y = densidad))
+```
+
+
